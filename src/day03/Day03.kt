@@ -4,38 +4,20 @@ import java.io.File
 
 fun main() {
     val lines = File("src/day03/input.txt").readLines()
-    /*
-    var sum = 0
-    for (line in lines) {
-        val ints = line.map { it.toString().toInt() }
-        val max = ints.dropLast(1).maxOrNull()!!
-        val maxIdx = ints.indexOf(max)
-        val nextMax = ints.drop(maxIdx + 1).maxOrNull()!!
-        println("$max$nextMax")
-        sum += "$max$nextMax".toInt()
-    }
-    println(sum)
-     */
-    var sum = 0L
-    for (line in lines) {
-        val x = findJolt(line, 12).toLong()
-        sum += x
-        println(x)
-    }
-    println(sum)
+    lines.sumOf { findJolt(it, 2).toLong() }.also { println(it) }
+    lines.sumOf { findJolt(it, 12).toLong() }.also { println(it) }
 }
 
 private fun findJolt(line: String, len: Int): String {
-    val ints = line.map { it.toString().toInt() }
-    val maxNums = mutableListOf<Int>()
-    var remainingInts = ints
-    var remainingLen = len
-    while (remainingLen > 0) {
-        val max = remainingInts.dropLast(remainingLen - 1).maxOrNull()!!
-        maxNums.add(max)
-        val maxIdx = remainingInts.indexOf(max)
-        remainingInts = remainingInts.drop(maxIdx + 1)
-        remainingLen--
+    val joltValues = mutableListOf<Int>()
+    var remInts = line.map { it.toString().toInt() }
+    var numJoltsLeft = len
+    while (numJoltsLeft > 0) {
+        val joltWindow = remInts.dropLast(numJoltsLeft - 1)
+        val (idx, max) = joltWindow.withIndex().maxBy { (i, v) -> v }
+        joltValues.add(max)
+        remInts = remInts.drop(idx + 1)
+        numJoltsLeft--
     }
-    return maxNums.joinToString("")
+    return joltValues.joinToString("")
 }
