@@ -57,3 +57,21 @@ data class Vector(
 }
 
 fun Pair<Number, Number>.toVector() = Vector(first, second)
+
+val vonNeumann = listOf(
+    Vector(0, -1),
+    Vector(-1, 0),
+    Vector(1, 0),
+    Vector(0, 1),
+)
+val moore = listOf(
+    Vector(-1, -1),
+    Vector(-1, 0),
+    Vector(-1, 1),
+    Vector(0, -1),
+    Vector(0, 1),
+    Vector(1, -1),
+    Vector(1, 0),
+    Vector(1, 1)
+)
+fun Vector.neighbours(deltas: List<Vector>): List<Vector> = deltas.map { this + it }

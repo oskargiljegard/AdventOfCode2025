@@ -60,16 +60,27 @@ class Grid<T>(val size: Vector, private val grid: Array<Array<T>>) {
 
     override fun toString(): String = toString { it.toString() }
     fun toString(elementTransformer: (T) -> String): String =
-        toStringIndexed { pos, element -> "$pos: ${elementTransformer(element)}" }
+        toStringIndexed { pos, element -> elementTransformer(element) }
 
     fun toStringIndexed(elementTransformer: (pos: Vector, T) -> String): String {
         val elementSize = positions.maxOfOrNull { elementTransformer(it, get(it)).length } ?: 0
         return yPositions.fold("") { acc, y ->
             acc + xPositions.fold("") { rowAcc, x ->
-                rowAcc + elementTransformer(Vector(x, y), get(Vector(x, y))).padEnd(elementSize + 1)
+                rowAcc + elementTransformer(Vector(x, y), get(Vector(x, y)))
             } + "\n"
         }
     }
+}
+
+inline fun <reified T> Grid<T>.copy(): Grid<T> =
+    Grid(size) { pos -> this[pos] }
+
+inline fun <reified T> Vector.isWithin(grid: Grid<T>): Boolean {
+    if (x >= grid.size.x) return false
+    if (y >= grid.size.y) return false
+    if (x < 0) return false
+    if (y < 0) return false
+    return true
 }
 
 inline fun <reified T> gridOf(size: Vector, value: T): Grid<T> = Grid(size) { value }
