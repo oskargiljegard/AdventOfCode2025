@@ -1,50 +1,35 @@
 package day06
 
+import utils.split
+import utils.transpose
 import java.io.File
+
+data class Problem(val op: Char, val grid: List<List<Char>>)
 
 fun main() {
     val lines = File("src/day06/input.txt").readLines()
-    println(lines)
-    val symbols = lines.last().split(" ").filter { it.isNotEmpty() }
-    println(symbols)
-    val numbersLines = lines.dropLast(1).map { it.padEnd(lines.maxOf { it.length }, ' ') }
-    val numbers = mutableListOf<MutableList<Long>>()
-    var currentColumn = mutableListOf<Long>()
-    for (i in 0 until numbersLines[0].length) {
-        if (numbersLines.all { it[i] == ' ' }) {
-            numbers.add(currentColumn)
-            currentColumn = mutableListOf()
-        } else {
-            val chars = numbersLines.map { it[i] }.filter { it != ' ' }
-            val number = chars.joinToString("").toLong()
-            currentColumn.add(number)
-        }
+    val maxLength = lines.maxOf { it.length }
+    val fullGrid = lines.map { it.padEnd(maxLength).toList() }
+    val problems = fullGrid.splitOnEmptyColumns().map { chunkGrid ->
+        val op = chunkGrid.last().first()
+        val grid = chunkGrid.dropLast(1)
+        Problem(op, grid)
     }
-    numbers.add(currentColumn)
-    println(numbers)
-    val results = symbols.mapIndexed { i, s ->
-        val numberList = numbers[i]
-        return@mapIndexed when (s) {
-            "+" -> numberList.sum()
-            "*" -> numberList.reduce { acc, n -> acc * n }
-            else -> throw IllegalArgumentException("Unknown symbol: $s")
-        }
-    }
-    println(results)
-    println(results.sum())
-    /*
-    val numbers = lines.dropLast(1).map { it.split(" ").filter { it.isNotEmpty() }.map { it.toLong() } }
-    println(numbers)
-    val results = symbols.mapIndexed { i, s ->
-        val numberList = numbers.map { it[i] }
-        return@mapIndexed when (s) {
-            "+" -> numberList.sum()
-            "*" -> numberList.reduce { acc, n -> acc * n }
-            else -> throw IllegalArgumentException("Unknown symbol: $s")
-        }
-    }
-    println(results)
-    println(results.sum())
-
-     */
+    println(problems.sumOf { it.solve() })
+    println(problems.map { p -> p.copy(grid = p.grid.transpose()) }.sumOf { it.solve() })
 }
+
+fun Problem.solve(): Long {
+    val nums = grid.map { row -> row.filter { it != ' ' }.joinToString("").toLong() }
+    return when (op) {
+        '+' -> nums.sum()
+        '*' -> nums.reduce { a, b -> a * b }
+        else -> throw IllegalArgumentException("Unknown op: $op")
+    }
+}
+
+fun List<List<Char>>.splitOnEmptyColumns() = transpose()
+    .split { row -> row.all { c -> c == ' ' } }
+    .map { it.transpose() }
+
+
