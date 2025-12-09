@@ -60,7 +60,7 @@ fun main() {
     }
     println(validPairs)
 
-    val vmax = validPairs.maxOf { (a, b) ->
+    val vmax = validPairs.maxBy { (a, b) ->
         abs(a.x.toLong() - b.x.toLong() + 1) * abs(a.y.toLong() - b.y.toLong() + 1)
     }
     println(vmax)
@@ -70,8 +70,15 @@ fun main() {
 
     println(intersects(Vector(9, 7), Vector(2, 3), Vector(9, 5), Vector(2, 5)))
 
+    val grid = Grid(Vector(tiles.maxOf { it.x }+1, tiles.maxOf { it.y }+1)) {
+        if (it in tiles) '#' else '.'
+    }
+    println(grid)
 
     /*
+
+    // It can currently pick a box on the wrong side of the path. However since my answer was too low. I must be missing
+    // a solution, I.e. also removing too much, not just too little
 
     // demo example goes around a loop starting right
     // real examples goes around down and then left
