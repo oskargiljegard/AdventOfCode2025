@@ -5,12 +5,10 @@ import kotlin.Comparator
 import kotlin.collections.HashMap
 
 interface Graph<N> {
-    val nodes: Collection<N>
     fun getNeighbors(node: N): Collection<N>
 }
 
 class HashmapGraph<N>(private val graph: Map<N, List<N>>) : Graph<N> {
-    override val nodes get() = graph.keys
     override fun getNeighbors(node: N) = graph[node] ?: emptyList()
 }
 
