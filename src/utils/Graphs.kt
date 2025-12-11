@@ -8,7 +8,7 @@ interface Graph<N> {
     fun getNeighbors(node: N): Collection<N>
 }
 
-class HashmapGraph<N>(private val graph: Map<N, List<N>>) : Graph<N> {
+class HashmapGraph<N>(val graph: Map<N, List<N>>) : Graph<N> {
     override fun getNeighbors(node: N) = graph[node] ?: emptyList()
 }
 
