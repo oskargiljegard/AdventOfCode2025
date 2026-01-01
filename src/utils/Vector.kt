@@ -49,6 +49,8 @@ data class Vector(
 
     fun rounded(): Vector = Vector(intX, intY)
 
+    fun swapped(): Vector = Vector(y, x)
+
     val intX: Int get() = x.roundToInt()
     val intY: Int get() = y.roundToInt()
 
