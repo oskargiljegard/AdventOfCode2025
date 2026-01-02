@@ -5,28 +5,12 @@ import java.io.File
 import kotlin.math.abs
 
 
-val grid = """
-..............
-..0......1....
-..............
-..5...4.......
-..............
-......3..2....
-..............
-""".trimIndent()
-
-
 fun main() {
-    /*
-    val fileLines = File("src/day09/input-mini.txt").readLines()
+    val fileLines = File("src/day09/input.txt").readLines()
     val tiles = fileLines.map { line ->
         val (x, y) = line.split(",")
         Vector(x.toDouble(), y.toDouble())
     }
-     */
-    val tiles = grid.lines()
-        .flatMapIndexed { y, line -> line.mapIndexedNotNull { x, c -> if (c != '.') c to Vector(x, y) else null } }
-        .sortedBy { it.first }.map { it.second }
     val pairs =
         tiles.flatMapIndexed { i1, t1 ->
             tiles.flatMapIndexed { i2, t2 ->
@@ -36,13 +20,6 @@ fun main() {
             }
         }.sortedByDescending { (a, b) -> area(a, b) }
     println("Part 1: ${area(pairs.first().first, pairs.first().second)}")
-
-    println(area(Vector(2, 1), Vector(9, 5)))
-    println(area(Vector(9, 5), Vector(2, 1)))
-
-    for (p in pairs) {
-        println("Pair: ${p.first} to ${p.second} area=${area(p.first, p.second)}")
-    }
 
     println("Num pairs: ${pairs.size}")
 
@@ -68,15 +45,6 @@ fun main() {
         if (hLines.any { (la, lb) -> vEdges.any { (ea, eb) -> intersects(la, lb, ea, eb) } }) return false
 
         return true
-    }
-
-    for ((c1, c3) in pairs) {
-        if (isValid(c1, c3)) {
-            println("Found valid: $c1 to $c3")
-            break
-        } else {
-            println("Invalid: $c1 to $c3")
-        }
     }
 
     val maxValid = pairs.first { (c1, c3) ->
