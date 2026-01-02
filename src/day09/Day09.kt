@@ -1,45 +1,12 @@
 package day09
 
 import utils.Vector
-import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Stroke
-import java.awt.image.BufferedImage
 import java.io.File
-import javax.imageio.ImageIO
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
-
-
-data class Candiate(val c1: Vector, val c2: Vector, val i1: Int, val i2: Int)
-
-enum class Dir {
-    UP, RIGHT, DOWN, LEFT
-}
-
-fun Dir.turnRight(): Dir {
-    when (this) {
-        Dir.UP -> return Dir.RIGHT
-        Dir.RIGHT -> return Dir.DOWN
-        Dir.DOWN -> return Dir.LEFT
-        Dir.LEFT -> return Dir.UP
-    }
-}
-
-fun Dir.turnLeft(): Dir {
-    when (this) {
-        Dir.RIGHT -> return Dir.UP
-        Dir.UP -> return Dir.LEFT
-        Dir.LEFT -> return Dir.DOWN
-        Dir.DOWN -> return Dir.RIGHT
-    }
-}
-
 
 fun main() {
-    val lines = File("src/day09/input.txt").readLines()
-    val tiles = lines.map { line ->
+    val fileLines = File("src/day09/input.txt").readLines()
+    val tiles = fileLines.map { line ->
         val (x, y) = line.split(",")
         Vector(x.toDouble(), y.toDouble())
     }
@@ -47,180 +14,62 @@ fun main() {
         tiles.flatMapIndexed { i1, t1 ->
             tiles.flatMapIndexed { i2, t2 ->
                 if (i1 < i2) listOf(
-                    Candiate(
-                        t1,
-                        t2,
-                        i1,
-                        i2
-                    )
+                    t1 to t2
                 ) else listOf()
             }
-        }
-    val max = pairs.maxOf { (a, b) ->
-        abs(a.x.toLong() - b.x.toLong() + 1) * abs(a.y.toLong() - b.y.toLong() + 1)
-    }
-    println(max)
+        }.sortedByDescending { (a, b) -> area(a, b) }
+    println("Part 1: ${area(pairs.first().first, pairs.first().second)}")
 
     println("Num pairs: ${pairs.size}")
 
-    val tilesWithNext = (tiles + listOf(tiles.first())).zipWithNext()
-
-    val leftMostTileIndex = tilesWithNext
-        .zip(0..<tilesWithNext.size)
-        .filter { (ts, i) -> ts.first.intX == ts.second.intX }
-        .minBy { (ts, i) -> ts.first.intX }
-        .second
-
-
-    val tilesWithNextInRightOrder =
-        tilesWithNext.subList(leftMostTileIndex, tilesWithNext.size) + tilesWithNext.subList(0, leftMostTileIndex)
-    val linesWithDirs = mutableListOf<Triple<Vector, Vector, Dir>>()
-    var lastTs: Pair<Vector, Vector>? = null
-    var lastDir: Dir? = null
-    for ((t1, t2) in tilesWithNextInRightOrder) {
-        var dir: Dir
-        if (lastDir == null) {
-            dir = Dir.LEFT
-        } else {
-            val didTurnRight = didTurnRight(lastTs!!.first, t1, t2)
-            dir = if (didTurnRight) lastDir.turnRight() else lastDir.turnLeft()
-        }
-
-        linesWithDirs.add(Triple(t1, t2, dir))
-
-        lastDir = dir
-        lastTs = t1 to t2
-    }
-
-    val validPairs = pairs.filter { (c1, c2, i1, i2) ->
-        return@filter linesWithDirs.all { (t1, t2, dirToOutside) -> isValid(c1, c2, t1, t2, dirToOutside) }
-    }
-    println("Num valid pairs: ${validPairs.size}")
-
-
-    val validMax = validPairs.maxBy { (a, b) ->
-        abs(a.x.toLong() - b.x.toLong() + 1) * abs(a.y.toLong() - b.y.toLong() + 1)
-    }
-    val validMaxValue = validPairs.maxOf { (a, b) ->
-        abs(a.x.toLong() - b.x.toLong() + 1) * abs(a.y.toLong() - b.y.toLong() + 1)
-    }
-    println(validMaxValue)
-
     // too low 1539204402
 
+    val lines = (tiles + tiles[0]).zipWithNext().map { (a, b) -> fixLine(a, b) }
+    val hLines = lines.filter { (a, b) -> a.intY == b.intY }
+    val vLines = lines.filter { (a, b) -> a.intX == b.intX }
 
-    val img = BufferedImage(10000, 10000, BufferedImage.TYPE_INT_ARGB);
-    val g2d = img.createGraphics();
-    g2d.setStroke(BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
-    val f = 10
+    val maxValid = pairs.first { (c1, c3) ->
+        if (c1.x == c3.x || c1.y == c3.y) return@first false
+        val tl = Vector(minOf(c1.x, c3.x), minOf(c1.y, c3.y))
+        val br = Vector(maxOf(c1.x, c3.x), maxOf(c1.y, c3.y))
 
-    for (t in tiles) {
-        g2d.drawRect(t.intX/f, t.intY/f, 10, 10)
+        val tli = tl + Vector(1, 1)
+        val bri = br - Vector(1, 1)
+        val tri = Vector(bri.x, tli.y)
+        val bli = Vector(tli.x, bri.y)
+        val hEdges = listOf(tli to tri, bli to bri)
+        val vEdges = listOf(tli to bli, tri to bri)
+
+        if (vLines.any { (la, lb) -> hEdges.any { (ea, eb) -> intersects(ea, eb, la, lb) } }) return@first false
+        if (hLines.any { (la, lb) -> vEdges.any { (ea, eb) -> intersects(la, lb, ea, eb) } }) return@first false
+
+        return@first true
     }
-    for ((t1, t2, dir) in linesWithDirs) {
-        g2d.setColor(Color.YELLOW);
-        g2d.drawLine(t1.intX / f, t1.intY / f, t2.intX / f, t2.intY / f)
-        val mid = (t1 + t2) / 2
-        val norm = when (dir) {
-            Dir.UP -> Vector(0, -1)
-            Dir.RIGHT -> Vector(1, 0)
-            Dir.DOWN -> Vector(0, 1)
-            Dir.LEFT -> Vector(-1, 0)
-        }
-        g2d.setColor(Color.GREEN);
-        g2d.drawLine(mid.intX / f, mid.intY / f, (mid+(norm*1000)).intX / f, (mid+(norm*1000)).intY / f)
-    }
-    g2d.setColor(Color.RED);
-    val bx = min(validMax.c1.intX, validMax.c2.intX)
-    val by = min(validMax.c1.intY, validMax.c2.intY)
-    val bw = max(validMax.c1.intX, validMax.c2.intX) - bx
-    val bh = max(validMax.c1.intY, validMax.c2.intY) - by
+    println("Part 2: ${area(maxValid.first, maxValid.second)}")
 
-    g2d.drawRect(bx/f, by/f, bw/f, bh/f)
-    ImageIO.write(img, "PNG", File("./src/day09/image.png"))
 }
 
-fun getSlice(tiles: List<Vector>, from: Int, to: Int): List<Vector> {
-    if (from == to) return listOf(tiles[from])
-    if (from < to) return tiles.subList(from, to)
-
-    return tiles.subList(from, tiles.size) + tiles.subList(0, to)
+fun area(c1: Vector, c2: Vector): Long {
+    return abs(c1.x.toLong() - c2.x.toLong() + 1) * abs(c1.y.toLong() - c2.y.toLong() + 1)
 }
 
-fun isValid(c1: Vector, c2: Vector, p1: Vector, p2: Vector, dirToOutside: Dir): Boolean {
-    if (p1.intY != p2.intY) {
-        if (p1.intX != p2.intX) error("Bad points")
-        val newDir = when (dirToOutside) {
-            Dir.LEFT -> Dir.UP
-            Dir.RIGHT -> Dir.DOWN
-            else -> error("Bad dir")
-        }
-        return isValid(c1.swapped(), c2.swapped(), p1.swapped(), p2.swapped(), newDir)
+fun fixLine(a: Vector, b: Vector): Pair<Vector, Vector> {
+    return when {
+        a.intX == b.intX && a.intY == b.intY -> error("Zero length line from $a to $b")
+        a.intX == b.intX -> if (a.intY < b.intY) a to b else b to a
+        a.intY == b.intY -> if (a.intX < b.intX) a to b else b to a
+        else -> error("Non axis aligned line from $a to $b")
     }
-    require(p1.intY == p2.intY)
-    require(p1.intX != p2.intX)
-
-    val maxX = max(c1.intX, c2.intX)
-    val maxY = max(c1.intY, c2.intY)
-    val minX = min(c1.intX, c2.intX)
-    val minY = min(c1.intY, c2.intY)
-
-    val y = p1.intY
-
-    if (p1.intX >= maxX && p2.intX >= maxX) return true
-
-    if (p1.intX <= minX && p2.intX <= minX) return true
-
-    /*
-    if (y == minY) {
-        // dir to outside may not be down
-        if (dirToOutside == Dir.DOWN) return false
-    }
-    if (y == maxY) {
-        // dir to outside may not be up
-        if (dirToOutside == Dir.UP) return false
-    }
-     */
-
-    if (y <= minY || y >= maxY) return true
-
-    return false
 }
 
-fun didTurnRight(t0: Vector, t1: Vector, t2: Vector): Boolean {
-    if (t0.intY != t1.intY) {
-        if (t0.intX != t1.intX) error("Bad points")
-        return !didTurnRight(t0.swapped(), t1.swapped(), t2.swapped())
-    }
-    if (t0.intX > t1.intX) return !didTurnRight(t0.copy(x = -t0.x), t1.copy(x = -t1.x), t2.copy(x = -t2.x))
-    if (t1.intY == t2.intY) error("Bad points, extra long line in Y")
-    if (t1.intX != t2.intX) error("Bad points, extra long line in X")
+// Requires the first line to be horizontal and the second to be vertical
+fun intersects(a: Vector, b: Vector, c: Vector, d: Vector): Boolean {
+    require(a.intY == b.intY)
+    require(a.intX <= b.intX)
 
-    if (t1.intY < t2.intY) return true
-    return false
+    require(c.intX == d.intX)
+    require(c.intY <= d.intY)
+
+    return a.intX < c.intX && c.intX < b.intX
+            && c.intY < a.intY && a.intY < d.intY
 }
-
-/*
-..............
-.......0...1..
-..............
-..6....7......
-..............
-..5......4....
-..............
-.........3.2..
-..............
-
-
-
-7,1
-11,1
-11,7
-9,7
-9,5
-3,5
-3,4
-2,4
-2,3
-7,3
- */
