@@ -4,12 +4,29 @@ import utils.Vector
 import java.io.File
 import kotlin.math.abs
 
+
+val grid = """
+..............
+..0......1....
+..............
+..5...4.......
+..............
+......3..2....
+..............
+""".trimIndent()
+
+
 fun main() {
-    val fileLines = File("src/day09/input.txt").readLines()
+    /*
+    val fileLines = File("src/day09/input-mini.txt").readLines()
     val tiles = fileLines.map { line ->
         val (x, y) = line.split(",")
         Vector(x.toDouble(), y.toDouble())
     }
+     */
+    val tiles = grid.lines()
+        .flatMapIndexed { y, line -> line.mapIndexedNotNull { x, c -> if (c != '.') c to Vector(x, y) else null } }
+        .sortedBy { it.first }.map { it.second }
     val pairs =
         tiles.flatMapIndexed { i1, t1 ->
             tiles.flatMapIndexed { i2, t2 ->
@@ -20,6 +37,13 @@ fun main() {
         }.sortedByDescending { (a, b) -> area(a, b) }
     println("Part 1: ${area(pairs.first().first, pairs.first().second)}")
 
+    println(area(Vector(2, 1), Vector(9, 5)))
+    println(area(Vector(9, 5), Vector(2, 1)))
+
+    for (p in pairs) {
+        println("Pair: ${p.first} to ${p.second} area=${area(p.first, p.second)}")
+    }
+
     println("Num pairs: ${pairs.size}")
 
     // too low 1539204402
@@ -28,8 +52,8 @@ fun main() {
     val hLines = lines.filter { (a, b) -> a.intY == b.intY }
     val vLines = lines.filter { (a, b) -> a.intX == b.intX }
 
-    val maxValid = pairs.first { (c1, c3) ->
-        if (c1.x == c3.x || c1.y == c3.y) return@first false
+    fun isValid(c1: Vector, c3: Vector): Boolean {
+        if (c1.x == c3.x || c1.y == c3.y) return false
         val tl = Vector(minOf(c1.x, c3.x), minOf(c1.y, c3.y))
         val br = Vector(maxOf(c1.x, c3.x), maxOf(c1.y, c3.y))
 
@@ -40,17 +64,31 @@ fun main() {
         val hEdges = listOf(tli to tri, bli to bri)
         val vEdges = listOf(tli to bli, tri to bri)
 
-        if (vLines.any { (la, lb) -> hEdges.any { (ea, eb) -> intersects(ea, eb, la, lb) } }) return@first false
-        if (hLines.any { (la, lb) -> vEdges.any { (ea, eb) -> intersects(la, lb, ea, eb) } }) return@first false
+        if (vLines.any { (la, lb) -> hEdges.any { (ea, eb) -> intersects(ea, eb, la, lb) } }) return false
+        if (hLines.any { (la, lb) -> vEdges.any { (ea, eb) -> intersects(la, lb, ea, eb) } }) return false
 
-        return@first true
+        return true
     }
+
+    for ((c1, c3) in pairs) {
+        if (isValid(c1, c3)) {
+            println("Found valid: $c1 to $c3")
+            break
+        } else {
+            println("Invalid: $c1 to $c3")
+        }
+    }
+
+    val maxValid = pairs.first { (c1, c3) ->
+        isValid(c1, c3)
+    }
+    println(maxValid)
     println("Part 2: ${area(maxValid.first, maxValid.second)}")
 
 }
 
 fun area(c1: Vector, c2: Vector): Long {
-    return abs(c1.x.toLong() - c2.x.toLong() + 1) * abs(c1.y.toLong() - c2.y.toLong() + 1)
+    return (abs(c1.x.toLong() - c2.x.toLong()) + 1) * (abs(c1.y.toLong() - c2.y.toLong()) + 1)
 }
 
 fun fixLine(a: Vector, b: Vector): Pair<Vector, Vector> {
